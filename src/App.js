@@ -1,59 +1,62 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
+import Balloon from "./Balloon";
+import Login from "./Login";
+import Geschiedenis from "./Geschiedenis";
+import Background from "./Background";
+import { auth } from "./firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
-function Balloon() {
-  const [text, setText] = useState("");
-  const [released, setReleased] = useState(false);
+function App() {
+  const [user, setUser] = useState(null);
+  const [toonGeschiedenis, setToonGeschiedenis] = useState(false);
+  const [toonLogin, setToonLogin] = useState(false);
 
-  const handleRelease = () => {
-    if (text.trim() !== "") {
-      setReleased(true);
-      setTimeout(() => {
-        setText("");
-        setReleased(false);
-      }, 5000); // Reset na animatie
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        setToonLogin(false); // Sluit login scherm als ingelogd
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setToonGeschiedenis(false);
+    } catch (error) {
+      console.error("Uitloggen mislukt:", error.message);
     }
   };
 
   return (
-    <div className="balloon-container">
-      <div className={`balloon ${released ? "released" : ""}`}>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Schrijf hier iets..."
-        />
-      </div>
-      <button onClick={handleRelease}>Loslaten</button>
-    </div>
-  );
-}
-
-function App() {
-  return (
     <div>
-      {/* Zon */}
-      <div className="sun"></div>
+      <Background />
 
-      {/* Wolken */}
-      <div className="cloud cloud1"></div>
-      <div className="cloud cloud2"></div>
-      <div className="cloud cloud3"></div>
-      <div className="cloud cloud4"></div>
-      <div className="cloud cloud5"></div>
-      <div className="cloud cloud6"></div>
-      <div className="cloud cloud7"></div>
+      <div style={{ position: "fixed", bottom: 20, left: 20, zIndex: 1000 }}>
+        {!user ? (
+          <button onClick={() => setToonLogin(true)}>Inloggen</button>
+        ) : (
+          <>
+            <button onClick={() => setToonGeschiedenis(!toonGeschiedenis)}>
+              Geschiedenis
+            </button>
+            {/* Hier wil je de uitlogknop */}
+            <button onClick={handleLogout}>Uitloggen</button>
+          </>
+        )}
+      </div>
 
-      {/* Vliegtuig */}
-      <div className="plane"></div>
-
-      {/* Vogels */}
-      <div className="bird" style={{ top: "230px", animationDelay: "0s" }}></div>
-      <div className="bird" style={{ top: "250px", animationDelay: "2s" }}></div>
-      <div className="bird" style={{ top: "210px", animationDelay: "4s" }}></div>
-
-      {/* Ballon met input */}
-      <Balloon />
+      {/* Dit is het stukje dat je moet aanpassen: */}
+      {toonLogin ? (
+        <Login onLogin={() => setToonLogin(false)} />
+      ) : toonGeschiedenis ? (
+        <Geschiedenis user={user} />
+      ) : (
+        <Balloon user={user} />
+      )}
     </div>
   );
 }

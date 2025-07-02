@@ -1,12 +1,33 @@
 // src/Balloon.js
 import React, { useState } from "react";
 import "./Balloon.css";
+import { db, auth } from "./firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 function Balloon() {
   const [text, setText] = useState("");
   const [released, setReleased] = useState(false);
 
-  const handleClick = () => setReleased(true);
+  const handleRelease = async () => {
+    if (text.trim() === "") return;
+
+    setReleased(true);
+
+    try {
+      await addDoc(collection(db, "antwoorden"), {
+        tekst: text,
+        timestamp: serverTimestamp(),
+        uid: auth.currentUser?.uid || null,
+      });
+    } catch (err) {
+      console.error("Fout bij opslaan:", err);
+    }
+
+    setTimeout(() => {
+      setText("");
+      setReleased(false);
+    }, 5000);
+  };
 
   return (
     <div className="balloon-container">
@@ -17,7 +38,7 @@ function Balloon() {
           onChange={(e) => setText(e.target.value)}
         />
       </div>
-      <button onClick={handleClick}>Loslaten</button>
+      <button onClick={handleRelease}>Loslaten</button>
     </div>
   );
 }
